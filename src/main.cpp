@@ -2,22 +2,22 @@
 #include <ESP32-HUB75-MatrixPanel-I2S-DMA.h>
 
 //Pin out
-#define R1_PIN 19
-#define G1_PIN 18
-#define B1_PIN 13
-#define R2_PIN 5
-#define G2_PIN 8
-#define B2_PIN 12
+#define R1_PIN 25
+#define G1_PIN 26
+#define B1_PIN 27
+#define R2_PIN 14
+#define G2_PIN 12
+#define B2_PIN 13
 
-#define A_PIN 44
-#define B_PIN 14
-#define C_PIN 4
-#define D_PIN 10
-#define E_PIN 6  //--> required for 1/32 scan panels, safe to leave defined
+#define A_PIN 23
+#define B_PIN 19
+#define C_PIN 5
+#define D_PIN 17
+#define E_PIN 18
 
-#define LAT_PIN 9
+#define LAT_PIN 4
 #define OE_PIN 15
-#define CLK_PIN 2
+#define CLK_PIN 16
 
 #define PANEL_RES_X 64
 #define PANEL_RES_Y 64
@@ -25,12 +25,6 @@
 
 MatrixPanel_I2S_DMA *dma_display = nullptr;
 
-//RGB values for certain color we want
-uint16_t myBLACK = dma_display->color565(0, 0, 0);
-uint16_t myWHITE = dma_display->color565(255, 255, 255);
-uint16_t myRED = dma_display->color565(255, 0, 0);
-uint16_t myGREEN = dma_display->color565(0, 255, 0);
-uint16_t myBLUE = dma_display->color565(0, 0, 255);
 
 
 
@@ -51,14 +45,23 @@ void setup() {
   //set I2S clock speed
   mxconfig.i2sspeed = HUB75_I2S_CFG::HZ_20M;
 
+
+
+
+  //printf("Hello World");
   //Scan config:: come back later and figure this out
   // mxconfig.scan = HUB75_I2S_CFG::SCAN_16;  // <-- Your panel is 1/16 scan
 
   //Display Setup
   dma_display = new MatrixPanel_I2S_DMA(mxconfig);
   dma_display->begin();
-  dma_display->setBrightness8(100); //0-255
-
+  dma_display->setBrightness8(25); //0-255
+    //RGB values for certain color we want
+uint16_t myBLACK = dma_display->color565(0, 0, 0);
+uint16_t myWHITE = dma_display->color565(255, 255, 255);
+uint16_t myRED = dma_display->color565(255, 0, 0);
+uint16_t myGREEN = dma_display->color565(0, 255, 0);
+uint16_t myBLUE = dma_display->color565(0, 0, 255);
   dma_display->clearScreen();
 
   dma_display->fillScreen(myWHITE);
