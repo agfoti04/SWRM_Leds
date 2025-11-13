@@ -1,6 +1,9 @@
 #include <Arduino.h>
 #include <ESP32-HUB75-MatrixPanel-I2S-DMA.h>
 
+#include "common.h"
+#include "showCase.h"
+
 //Pin out
 //these are right
 #define R1_PIN 25
@@ -77,26 +80,16 @@ uint16_t MAROON = dma_display->color565(128, 0 ,0);
 
 void loop() {
   
-  uint16_t myBLACK = dma_display->color565(0, 0, 0);
-uint16_t myWHITE = dma_display->color565(255, 255, 255);
-uint16_t myRED = dma_display->color565(255, 0, 0);
-uint16_t myGREEN = dma_display->color565(0, 255, 0);
-uint16_t myBLUE = dma_display->color565(0, 0, 255);
+
   
   dma_display->clearScreen();
-  
-  // dma_display->drawLine(0, 0, 63, 63, dma_display->color565(0, 255, 255));
-  // delay(2000);
-  // dma_display->clearScreen();
-  // dma_display->drawPixel(64,64, myGREEN);
-  // delay(2000);
 
   dma_display->fillScreen(0);
   dma_display->drawLine(0, 0, 63, 63, dma_display->color565(0, 255, 255));
   dma_display->drawCircle(32, 32, 15, dma_display->color565(255, 0, 255));
   dma_display->drawRect(5, 5, 54, 54, dma_display->color565(255, 255, 0));
   delay(2000);
-
+  draw_AM();
   
   
 }
