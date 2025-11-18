@@ -1,6 +1,14 @@
 #include "common.h"
 #include "showCase.h"
+#include <cstdlib>
 
+
+uint16_t myBLACK = dma_display->color565(0, 0, 0);
+uint16_t myWHITE = dma_display->color565(255, 255, 255);
+uint16_t myRED = dma_display->color565(255, 0, 0);
+uint16_t myGREEN = dma_display->color565(0, 255, 0);
+uint16_t myBLUE = dma_display->color565(0, 0, 255);
+uint16_t MAROON = dma_display->color565(128, 0 ,0);
 //Draws A&M's Logo
 void draw_AM(){
 dma_display->fillScreen(0); // clear screen
@@ -39,7 +47,8 @@ void draw_spiral(){
   dma_display->drawRect(32,32,3,3,MAROON);
 }
 
-void animateSpinningSquare() {
+//Works
+void animateSpinningSquare(bool clockwise) {
     static float angle = 0;
 
     dma_display->fillScreen(0);
@@ -60,10 +69,20 @@ void animateSpinningSquare() {
         dma_display->drawLine(x1, y1, x2, y2, dma_display->color565(255,255,255));
     }
 
-    angle += 0.15;
+
+    if(clockwise){
+      angle += 0.15;
+    }
+    else{
+      angle-= 0.15;
+    }
+    
+    delay(50);
 }
 
+//Works. Add color parameter
 void draw_sawtoothWave(int x_s, int y_s, int period){
+
   int c=0;
   for(int i = x_s; i < 63; i+=period){
     if(c %2==0){
@@ -76,6 +95,98 @@ void draw_sawtoothWave(int x_s, int y_s, int period){
       x_s+=period;
       y_s-=10;
     }
-    
+    c++;
+    delay(50);
   }
+}
+
+
+
+void drawRipples(int startX, int startY, int maxRipples) {
+    static int frame = 0;
+
+    dma_display->fillScreen(0);
+
+    // Each frame corresponds to one pixel of radius growth
+    for (int i = 0; i < maxRipples; i++) {
+        int radius = frame - i * 8;  // spacing between rings
+
+        if (radius > 0) {
+            dma_display->drawCircle(startX, startY, radius, dma_display->color565((std::rand()%255)+1, (std::rand()%255)+1,(std::rand()%255)+1));
+            dma_display->drawCircle(startX, startY, radius+1, dma_display->color565((std::rand()%255)+1, (std::rand()%255)+1,(std::rand()%255)+1));
+        }
+    }
+
+    frame++;
+
+    // once ripples move off-screen, reset
+    if (frame > 100) frame = 0;
+
+    delay(100);
+}
+
+void randomRipples(){
+  int random_x = (std::rand() % 63) +1;
+  int random_y = (std::rand() % 63) +1;
+
+  for(int i =0; i < 10; i++){
+  drawRipples(random_x,random_y, 10);
+}
+
+  
+}
+
+// Each raindrop ripple emitter
+struct Ripple {
+    int x, y;        // center
+    int radius;      // current radius
+    bool active;     // whether ripple is alive
+};
+
+const int MAX_RIPPLES = 12;   // how many raindrops at once
+Ripple ripples[MAX_RIPPLES];
+
+void drawRainRipples(uint16_t color, int spawnChance, int maxRadius, int speed) {
+    dma_display->fillScreen(0);
+
+    // 1. Possibly spawn a new ripple
+    if (random(0, spawnChance) == 0) {  
+        for (int i = 0; i < MAX_RIPPLES; i++) {
+            if (!ripples[i].active) {
+                ripples[i].active = true;
+                ripples[i].radius = 1;
+                ripples[i].x = random(0, 64);
+                ripples[i].y = random(0, 64);
+                break;
+            }
+        }
+    }
+
+    // 2. Draw and update all active ripples
+    for (int i = 0; i < MAX_RIPPLES; i++) {
+        if (ripples[i].active) {
+
+            // Fade color as radius grows
+            uint8_t fade = 255 - (ripples[i].radius * 4);
+            if (fade < 0) fade = 0;
+
+            uint16_t fadeColor = dma_display->color565(0,0,255);
+
+            dma_display->drawCircle(
+                ripples[i].x,
+                ripples[i].y,
+                ripples[i].radius,
+                fadeColor
+            );
+
+            ripples[i].radius++;
+
+            // end ripple once it expands too far
+            if (ripples[i].radius > maxRadius) {
+                ripples[i].active = false;
+            }
+        }
+    }
+
+    delay(speed);
 }

@@ -5,10 +5,20 @@
 void draw_AM();
 
 void write_word(int x, int y, uint16_t color, int size, char* word);
-void animateSpinningSquare();
 
+//Works
+void animateSpinningSquare(bool clockwise);
+
+//Works, add color parameter
 void draw_sawtoothWave(int x_s, int y_s, int period);
 
+//Works
+void drawRipples(int startX, int startY, int maxRipples);
 
+//WIP
+void randomRipples();
+
+//Single ripple rain drops
+void drawRainRipples(uint16_t color, int spawnChance, int maxRadius, int speed);
 
 #endif
