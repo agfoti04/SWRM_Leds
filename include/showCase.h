@@ -5,5 +5,10 @@
 void draw_AM();
 
 void write_word(int x, int y, uint16_t color, int size, char* word);
+void animateSpinningSquare();
+
+void draw_sawtoothWave(int x_s, int y_s, int period);
+
+
 
 #endif
