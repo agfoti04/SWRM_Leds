@@ -32,6 +32,8 @@ int c =0;
 
 MatrixPanel_I2S_DMA *dma_display = nullptr;
 
+
+
 void setup() {
 
   Serial.begin(115200);
@@ -82,12 +84,7 @@ uint16_t MAROON = dma_display->color565(128, 0 ,0);
 }
 
 void loop() {
-//   uint16_t myBLACK = dma_display->color565(0, 0, 0);
-// uint16_t myWHITE = dma_display->color565(255, 255, 255);
-// uint16_t myRED = dma_display->color565(255, 0, 0);
-// uint16_t myGREEN = dma_display->color565(0, 255, 0);
-// uint16_t myBLUE = dma_display->color565(0, 0, 255);
-// uint16_t MAROON = dma_display->color565(128, 0 ,0);
+
 
   
   dma_display->clearScreen();
@@ -96,20 +93,18 @@ void loop() {
   // dma_display->drawLine(0, 0, 63, 63, dma_display->color565(0, 255, 255));
   // dma_display->drawCircle(32, 32, 15, dma_display->color565(255, 0, 255));
   // dma_display->drawRect(5, 5, 54, 54, dma_display->color565(255, 255, 0));
-  if(c < 200){
-    animateSpinningSquare((c < 100) ? true:false);
-    c++;
+//   if(c < 200){
+//     animateSpinningSquare((c < 100) ? true:false);
+//     c++;
 
-  }
-  else if(c < 300){
-    drawRipples(32,32,15);
-    c++;
-  }
+//   }
+//   else if(c < 300){
+//     drawRipples(32,32,15);
+//     c++;
+//   }
   
-else{
-  drawRainRipples(dma_display->color565(0, 0, 255), 6, 28,100);}
-
-  
+// else{
+//   drawRainRipples(dma_display->color565(0, 0, 255), 6, 28,100);
 
   
   //draw_sawtoothWave(0,10,4);
