@@ -29,6 +29,11 @@
 #define PANEL_CHAIN 2
 
 int c =0;
+u_int32_t timer =0;
+int x =0;
+bool flipped = false;
+int off = 0;
+
 
 MatrixPanel_I2S_DMA *dma_display = nullptr;
 
@@ -340,7 +345,7 @@ uint64_t static frame2 [] = {
   0xFFFFFF,0xFFFFFF,0xFFFFFF,0xFFFFFF,0xFFFFFF,0xFFFFFF,0xFFFFFF,0xFFFFFF,0xFFFFFF,0xFFFFFF,0xFFFFFF,0xFFFFFF,0xFFFFFF,0xFFFFFF,0xFFFFFF,0xFFFFFF,
   0xFFFFFF,0xFFFFFF,0xFFFFFF,0xFFFFFF,0xFFFFFF,0xFFFFFF,0xFFFFFF,0xFFFFFF,0xFFFFFF,0xFFFFFF,0xFFFFFF,0xFFFFFF,0xFFFFFF,0xFFFFFF,0xFFFFFF,0xFFFFFF,
 };
-uint64_t static heart_8x8[] = {
+uint64_t static frame1[] = {
 
   0xFFFFFF,0xFFFFFF,0xFFFFFF,0xFFFFFF,0xFFFFFF,0xFFFFFF,0xFFFFFF,0xFFFFFF,0xFFFFFF,0xFFFFFF,0xFFFFFF,0xFFFFFF,0xFFFFFF,0xFEFFFF,0xFFFFFF,0xFFFFFF,0xFFFFFF,0xFFFFFF,0xFFFFFF,0xFFFFFF,0xFFFFFF,0xFFFFFF,0xFEFFFF,0xFFFFFF,0xFFFFFF,0xFFFFFF,0xFFFFFF,0xFFFFFF,0xFFFFFF,0xFFFFFF,0xFFFFFF,0xFFFFFF,0xFFFFFF,0xFFFFFF,0xFFFFFF,0xFFFFFF,0xFFFFFF,0xFFFFFF,0xFFFFFF,0xFFFFFF,0xFFFFFF,0xFFFFFF,0xFFFFFF,0xFFFFFF,0xFFFFFF,0xFFFFFF,0xFFFFFF,0xFFFFFF,0xFFFFFF,0xFFFFFF,0xFFFFFF,0xFFFFFF,0xFFFFFF,0xFFFFFF,0xFFFFFF,0xFFFFFF,0xFFFFFF,0xFFFFFF,0xFFFFFF,0xFFFFFF,0xFFFFFF,0xFFFFFF,0xFFFFFF,0xFFFFFF,
   0xFFFFFF,0xFEFFFF,0xFFFFFF,0xFFFFFF,0xFFFFFF,0xFFFFFF,0xFFFFFF,0xFFFEFF,0xFFFFFF,0xFFFFFF,0xFEFFFF,0xFFFFFF,0xFFFFFF,0xFFFFFF,0xFEFFFF,0xFFFFFF,0xFFFFFF,0xFFFFFF,0xFFFFFF,0xFFFFFF,0xFEFFFF,0xFFFFFF,0xFEFFFF,0xFEFFFF,0xFFFFFF,0xFFFFFF,0xFEFFFF,0xFFFFFF,0xFFFFFF,0xFFFFFF,0xFEFFFF,0xFEFFFF,0xFFFFFF,0xFFFFFF,0xFFFFFF,0xFFFFFF,0xFFFFFF,0xFEFFFF,0xFFFFFF,0xFFFFFF,0xFFFFFF,0xFFFFFF,0xFFFFFF,0xFFFFFF,0xFEFFFF,0xFFFFFF,0xFFFFFF,0xFEFFFF,0xFEFFFF,0xFFFFFF,0xFEFFFF,0xFEFFFF,0xFFFFFF,0xFEFFFF,0xFFFFFF,0xFFFFFF,0xFFFFFF,0xFFFFFF,0xFFFFFF,0xFFFFFF,0xFFFFFF,0xFFFFFF,0xFFFFFF,0xFFFFFF,
@@ -415,24 +420,54 @@ void loop() {
   // dma_display->drawLine(0, 0, 63, 63, dma_display->color565(0, 255, 255));
   // dma_display->drawCircle(32, 32, 15, dma_display->color565(255, 0, 255));
   // dma_display->drawRect(5, 5, 54, 54, dma_display->color565(255, 255, 0));
-//   if(c < 200){
-//     animateSpinningSquare((c < 100) ? true:false);
-//     c++;
-//   }
-//   else if(c < 300){
-//     drawRipples(63,32,15);
-//     c++;
-//   }
-// else{
-//   drawRainRipples(dma_display->color565(0, 0, 255), 5, 28,100);
-// }
 
-   drawBitMap(0+c,0,64,64,heart_8x8);
-   delay(300);
+//   if (millis() - timer > 1000) {   // 1 second passed
+//     timer = millis();            // reset timer
+//     dma_display->drawRect(5, 5, 54, 54, dma_display->color565(255, 255, 0));
+// }
+if(millis() < 12000 ){
+    animateSpinningSquare((x < 90) ? true:false, off);
+     x++;
+}
+else if (millis() - timer < 25000){
+  drawRipples(63,32,20);
+}
+else if(millis() - timer < 55000){
+  drawRainRipples(dma_display->color565(0, 0, 255), 5, 28,100);
+}
+else if(millis() - timer >= 55001 && millis() - timer < 55100){
+  dma_display->clearScreen();
+  dma_display->fillScreen(dma_display->color565(255, 255, 255));
+}
+else if(millis() - timer < 80000){
+  if(c < 76 && !flipped){
+   drawBitMap(0+c,0,64,64,frame1);
+   delay(250);
    c++;
    drawBitMap(0+c,0,64,64, frame2);
-   delay(300);
-   //c++;
+   delay(250);
+   c++;}
+   else{
+    flipped = true;
+    drawFlippedBitMap(c,0,64,64,frame2);
+    delay(250);
+    c--;
+    drawFlippedBitMap(c,0,64,64,frame1);
+    delay(250);
+    c--;
+    if(c==0){
+      flipped = false;
+    }
+   }
+}
+else{
+  //off=-90;
+  flipped = false;
+  timer = millis();
+  x=0;
+  c=0;
+}
+
    
 
 }

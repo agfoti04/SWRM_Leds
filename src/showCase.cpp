@@ -48,13 +48,13 @@ void draw_spiral(){
 }
 
 //Works
-void animateSpinningSquare(bool clockwise) {
+void animateSpinningSquare(bool clockwise, int off) {
     static float angle = 0;
     static float x_offset =0;
 
     dma_display->fillScreen(0);
 
-    int cx = 32+x_offset;
+    int cx = 32+x_offset + off;
     int cy = 32;
     int size = 20;
 
@@ -206,6 +206,16 @@ void drawBitMap(int startx, int starty, int width, int height, uint64_t *bitmap)
   for (int yy = 0; yy < height; yy++) {
     for (int xx = 0; xx < width; xx++) {
       dma_display->drawPixel(startx+xx, starty+yy, color565(bitmap[counter]));
+      counter++;
+    }
+  }
+}
+
+void drawFlippedBitMap(int startx, int starty, int width, int height, uint64_t *bitmap){
+  int counter = 0;
+  for (int yy = 0; yy < height; yy++) {
+    for (int xx = 0; xx < width; xx++) {
+      dma_display->drawPixel(startx+ (width-1-xx), starty+yy, color565(bitmap[counter]));
       counter++;
     }
   }
