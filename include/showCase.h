@@ -21,4 +21,6 @@ void randomRipples();
 //Single ripple rain drops
 void drawRainRipples(uint16_t color, int spawnChance, int maxRadius, int speed);
 
+void drawBitMap(int startx, int starty, int width, int height, uint64_t *bitmap);
+
 #endif

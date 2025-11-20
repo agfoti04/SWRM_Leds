@@ -50,10 +50,11 @@ void draw_spiral(){
 //Works
 void animateSpinningSquare(bool clockwise) {
     static float angle = 0;
+    static float x_offset =0;
 
     dma_display->fillScreen(0);
 
-    int cx = 32;
+    int cx = 32+x_offset;
     int cy = 32;
     int size = 20;
 
@@ -72,9 +73,11 @@ void animateSpinningSquare(bool clockwise) {
 
     if(clockwise){
       angle += 0.15;
+      x_offset++;
     }
     else{
       angle-= 0.15;
+      x_offset--;
     }
     
     delay(50);
@@ -147,7 +150,8 @@ const int MAX_RIPPLES = 12;   // how many raindrops at once
 Ripple ripples[MAX_RIPPLES];
 
 void drawRainRipples(uint16_t color, int spawnChance, int maxRadius, int speed) {
-    dma_display->fillScreen(0);
+
+    dma_display->fillScreen(dma_display->color565(0,0,10));
 
     // 1. Possibly spawn a new ripple
     if (random(0, spawnChance) == 0) {  
@@ -155,7 +159,7 @@ void drawRainRipples(uint16_t color, int spawnChance, int maxRadius, int speed) 
             if (!ripples[i].active) {
                 ripples[i].active = true;
                 ripples[i].radius = 1;
-                ripples[i].x = random(0, 64);
+                ripples[i].x = random(0, 128);
                 ripples[i].y = random(0, 64);
                 break;
             }
@@ -189,4 +193,20 @@ void drawRainRipples(uint16_t color, int spawnChance, int maxRadius, int speed) 
     }
 
     delay(speed);
+}
+
+uint16_t color565(uint32_t rgb) {
+  return (((rgb>>16) & 0xF8) << 8) | 
+    (((rgb>>8) & 0xFC) << 3) | 
+    ((rgb & 0xFF) >> 3);
+};
+
+void drawBitMap(int startx, int starty, int width, int height, uint64_t *bitmap){
+   int counter = 0;
+  for (int yy = 0; yy < height; yy++) {
+    for (int xx = 0; xx < width; xx++) {
+      dma_display->drawPixel(startx+xx, starty+yy, color565(bitmap[counter]));
+      counter++;
+    }
+  }
 }
