@@ -210,3 +210,7 @@ void drawBitMap(int startx, int starty, int width, int height, uint64_t *bitmap)
     }
   }
 }
+
+void drawBitAnimation(int startx, int starty, int width, int height, uint64_t *bitmap){
+
+}
