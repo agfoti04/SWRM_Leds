@@ -428,6 +428,7 @@ void loop() {
 if(millis() < 12000 ){
     animateSpinningSquare((x < 90) ? true:false, off);
      x++;
+     //drawFireworks();
 }
 else if (millis() - timer < 25000){
   drawRipples(63,32,20);

@@ -221,6 +221,74 @@ void drawFlippedBitMap(int startx, int starty, int width, int height, uint64_t *
   }
 }
 
-void drawBitAnimation(int startx, int starty, int width, int height, uint64_t *bitmap){
 
+struct Firework {
+  int cx, cy;              // center
+  float angle[6];          // 6 directions
+  float radius;            // current radius
+  float speed;             // expansion speed
+  bool active;
+};
+
+const int MAX_FIREWORKS = 8;
+Firework fireworks[MAX_FIREWORKS];
+
+void spawnFirework() {
+  for (int i = 0; i < MAX_FIREWORKS; i++) {
+    if (!fireworks[i].active) {
+
+      fireworks[i].cx = random(8, 56);
+      fireworks[i].cy = random(8, 56);
+
+      // six evenly spaced angles
+      for (int j = 0; j < 6; j++) {
+        fireworks[i].angle[j] = j * (2 * PI / 6);
+      }
+
+      fireworks[i].radius = 0;
+      fireworks[i].speed = random(10, 25) * 0.01f;   // 0.10 – 0.25 px/frame
+      fireworks[i].active = true;
+      break;
+    }
+  }
+}
+
+
+// ---------------------------------------------------------
+// Update + draw all fireworks
+// Call this every frame inside loop()
+// ---------------------------------------------------------
+void drawFireworks() {
+  for (int i = 0; i < MAX_FIREWORKS; i++) {
+    if (!fireworks[i].active) continue;
+
+    Firework &fw = fireworks[i];
+
+    // Update expansion
+    fw.radius += fw.speed;
+
+    // If too big, deactivate and allow a new one
+    if (fw.radius > 25) {
+      fw.active = false;
+      continue;
+    }
+
+    // Draw the 6 exploding lines
+    for (int j = 0; j < 6; j++) {
+      float px = fw.cx + fw.radius * cos(fw.angle[j]);
+      float py = fw.cy + fw.radius * sin(fw.angle[j]);
+
+      // draw a pixel at this position
+      dma_display->drawPixel(
+        (int)px,
+        (int)py,
+        dma_display->color565(255, 255, 255)
+      );
+    }
+  }
+
+  // Chance to spawn new fireworks randomly
+  if (random(0, 20) == 0) {  // about 5% chance per frame
+    spawnFirework();
+  }
 }
