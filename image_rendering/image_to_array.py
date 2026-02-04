@@ -43,7 +43,8 @@ else:
 # ---- Generate C++ array ----
 lines = []
 lines.append("#include <stdint.h>\n\n")
-lines.append(f"uint64_t static {array_name}[] = {{\n\n")
+# use static const and a 32-bit type since values are 0xRRGGBB
+lines.append(f"static const uint32_t {array_name}[] = {{\n\n")
 
 for y in range(64):
     row_pixels = []
@@ -52,7 +53,7 @@ for y in range(64):
     x_range = range(63, -1, -1) if (ZIGZAG_WIRING and y % 2 == 1) else range(64)
 
     for x in x_range:
-        r, g, b = img64[y, x]
+        r, g, b = map(int, img64[y, x])
         value = (r << 16) | (g << 8) | b   # 0xRRGGBB
         row_pixels.append(f"0x{value:06X}")
 
