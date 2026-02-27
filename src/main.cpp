@@ -1,5 +1,7 @@
 #include <Arduino.h>
 #include <ESP32-HUB75-MatrixPanel-I2S-DMA.h>
+#include <WiFi.h>
+#include <WebServer.h>
 
 #include "common.h"
 #include "showCase.h"
@@ -47,7 +49,7 @@ void setup() {
   //init pin connections between esp32 and the LED board
   HUB75_I2S_CFG::i2s_pins _pins = {R1_PIN, G1_PIN, B1_PIN, R2_PIN, G2_PIN, B2_PIN, A_PIN, B_PIN, C_PIN, D_PIN, E_PIN, LAT_PIN, OE_PIN, CLK_PIN};
   delay(10);
-  uint16_t myBLACK = dma_display->color565(0, 0, 0);
+uint16_t myBLACK = dma_display->color565(0, 0, 0);
 uint16_t myWHITE = dma_display->color565(255, 255, 255);
 uint16_t myRED = dma_display->color565(255, 0, 0);
 uint16_t myGREEN = dma_display->color565(0, 255, 0);
@@ -68,9 +70,6 @@ uint16_t MAROON = dma_display->color565(128, 0 ,0);
   mxconfig.clkphase = false;
   //Display Setup
   dma_display = new MatrixPanel_I2S_DMA(mxconfig);
-  
-
-  
 
   dma_display->begin();
   //0-255
@@ -81,7 +80,6 @@ uint16_t MAROON = dma_display->color565(128, 0 ,0);
   dma_display->fillScreen(MAROON);
   delay(1000);
   
-
   dma_display->clearScreen();
   dma_display->fillScreen(myWHITE);
   delay(1000);
