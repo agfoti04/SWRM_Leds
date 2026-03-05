@@ -7,9 +7,16 @@ const int AIN1 = 17;   // MA1
 const int AIN2 = 21;   // MA2
 
 
-const int ENC_A = 35;  // AC1
-const int ENC_B = 34;  // AC2
+const int ENC_A1 = 35;  // AC1
+const int ENC_A2 = 34;  // AC2
 
+
+const int PWMB = 26;
+const int BIN1 = 27;
+const int BIN2 = 14;
+
+const int ENC_B1 = 39;
+const int ENC_B2 = 36;
 //
 volatile long encoderCount = 0;
 
@@ -24,7 +31,7 @@ const int PWM_RES = 8;
 void IRAM_ATTR handleEncoder()
 {
     // Robust quadrature decode
-    if (digitalRead(ENC_A) == digitalRead(ENC_B))
+    if (digitalRead(ENC_A1) == digitalRead(ENC_A2))
         encoderCount++;
     else
         encoderCount--;
@@ -70,10 +77,10 @@ void setup()
     setMotor(0);
 
     // ----- Encoder setup -----
-    pinMode(ENC_A, INPUT);
-    pinMode(ENC_B, INPUT);
+    pinMode(ENC_A1, INPUT);
+    pinMode(ENC_A2, INPUT);
 
-    attachInterrupt(digitalPinToInterrupt(ENC_A), handleEncoder, CHANGE);
+    attachInterrupt(digitalPinToInterrupt(ENC_A1), handleEncoder, CHANGE);
 
     Serial.println("Motor A + Encoder Ready");
 }
