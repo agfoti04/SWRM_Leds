@@ -12,8 +12,8 @@ const int ENC_A2 = 34;  // AC2
 
 
 const int PWMB = 26; //PWM
-const int BIN1 = 27; //MB1
-const int BIN2 = 14; //MB2
+const int BIN1 = 22; //MB1
+const int BIN2 = 23; //MB2
 
 const int ENC_B1 = 39; //BC1
 const int ENC_B2 = 36; //BC2
