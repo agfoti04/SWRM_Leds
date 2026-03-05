@@ -7,16 +7,16 @@ const int AIN1 = 17;   // MA1
 const int AIN2 = 21;   // MA2
 
 
-const int ENC_A1 = 35;  // AC1
-const int ENC_A2 = 34;  // AC2
+const int ENC_A1 = 34;  // AC1
+const int ENC_A2 = 35;  // AC2
 
 
-const int PWMB = 26;
-const int BIN1 = 27;
-const int BIN2 = 14;
+const int PWMB = 26; //PWM
+const int BIN1 = 22; //MB1
+const int BIN2 = 23; //MB2
 
-const int ENC_B1 = 39;
-const int ENC_B2 = 36;
+const int ENC_B1 = 27; //BC1
+const int ENC_B2 = 16; //BC2
 //
 volatile long encoderCount = 0;
 
