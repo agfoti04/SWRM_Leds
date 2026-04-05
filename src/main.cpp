@@ -1,42 +1,77 @@
+/**
+ * Kiwi Drive - Hiwonder 4-Channel Encoder Motor Driver
+ *
+ * Hardware changes from original:
+ *   - Motor control is now I2C-only (no direct PWM/direction GPIO pins).
+ *   - The Hiwonder board (SA8870C) lives at I2C address 0x34.
+ *   - Speed is sent as a block of 4 signed bytes to register 0x33 (51).
+ *   - Encoder A/B lines still wire directly to ESP32 GPIO for counting.
+ *
+ * Wiring (I2C):
+ *   ESP32 GPIO 21 (SDA) --> Board SDA
+ *   ESP32 GPIO 22 (SCL) --> Board SCL
+ *   Common GND
+ *
+ * Only 3 of the 4 motor channels are used (kiwi drive).
+ * Channel mapping: M1 = Motor A, M2 = Motor B, M3 = Motor C, M4 unused (speed = 0)
+ *
+ * Motor: Adafruit 4638 — N20 6V 1:50 magnetic encoder motor
+ *   Encoder resolution : 14 counts/rev (pre-gear) × 50 = 700 counts/output-rev
+ *   Wire colours       : Red/White → M+/M−  |  Blue → GND  |  Black → VCC (3-5V)
+ *                        Yellow → Encoder A  |  Green → Encoder B
+ *
+ * NOTE: If a motor spins the wrong direction, negate that channel in
+ *       setMotorSpeeds(), or flip MOTOR_ENCODER_POLARITY and re-test.
+ */
+
 #include <Arduino.h>
+#include <Wire.h>
 #include <math.h>
 
-//MOTOR A 
-const int PWMA = 25;
-const int AIN1 = 17;
-const int AIN2 = 21;
+// ── I2C ──────────────────────────────────────────────────────────────────────
+#define HIWONDER_I2C_ADDR           0x34
+
+// Register addresses (from Hiwonder's published Arduino tutorial)
+#define MOTOR_TYPE_ADDR             20   // 0x14
+#define MOTOR_ENCODER_POLARITY_ADDR 21   // 0x15
+#define MOTOR_FIXED_SPEED_ADDR      51   // 0x33  – 4 signed bytes, one per channel
+
+// Motor type constants (select the one matching your hardware)
+#define MOTOR_TYPE_TT               0    // TT plastic-shaft gear motor
+#define MOTOR_TYPE_N20              1    // N20 micro gear motor
+#define MOTOR_TYPE_JGB              2    // JGB37 / 520 / 310 DC gear motor
+
+// Adafruit 4638 is an N20 motor
+#define MOTOR_TYPE                  MOTOR_TYPE_N20
+#define MOTOR_ENCODER_POLARITY      0    // 0 = default, 1 = reversed
+
+// Encoder resolution for Adafruit 4638 (N20 6V 1:50)
+// 14 raw counts/rev (pre-gear) × 50 gear ratio = 700 counts per output shaft revolution
+// Use ENCODER_CPR_4X if decoding both edges of both channels (quadrature 4x)
+#define ENCODER_CPR                 700   // counts/output-rev  (2x decoding, one channel interrupt)
+#define ENCODER_CPR_4X              1400  // counts/output-rev  (4x decoding, both channel interrupts)
+
+// I2C pins (ESP32 defaults; change if your board uses different ones)
+#define I2C_SDA_PIN                 21
+#define I2C_SCL_PIN                 22
+
+// ── Encoder GPIO ──────────────────────────────────────────────────────────────
+// These still connect directly to ESP32 GPIO — the Hiwonder board passes encoder
+// signals through its VCC/GND/A/B header per channel.
 const int ENC_A1 = 35;
 const int ENC_B1 = 34;
 
-//MOTOR B
-const int PWMB = 26;
-const int BIN1 = 18;
-const int BIN2 = 19;
 const int ENC_A2 = 32;
 const int ENC_B2 = 33;
 
-//MOTOR C
-const int PWMC = 27;
-const int CIN1 = 22;
-const int CIN2 = 23;
 const int ENC_A3 = 36;
 const int ENC_B3 = 39;
-//
+
 volatile long encoder1 = 0;
 volatile long encoder2 = 0;
 volatile long encoder3 = 0;
 
-// PWM
-#define PWM_FREQ 20000
-#define PWM_RES 8
-
-#define CH_A 0
-#define CH_B 1
-#define CH_C 2
-
-// Based on my understanding, When ENC_A and ENC_B are equal when it is going forward, and unequal when reverse
-//This program does not take into account Encoder values to stop yet
-//TODO: Add functionality that checks the encoderCount variable to know when the robot has reached its destination and stop the motor
+// ── Encoder ISRs ─────────────────────────────────────────────────────────────
 void IRAM_ATTR handleEnc1() {
     if (digitalRead(ENC_A1) == digitalRead(ENC_B1)) encoder1++;
     else encoder1--;
@@ -52,148 +87,108 @@ void IRAM_ATTR handleEnc3() {
     else encoder3--;
 }
 
-// This is used to set speed and direction of the motor.
-void setMotorA(int pwm)
-{
-    if(abs(pwm) < 30) pwm = 0; //deadband
-    pwm = constrain(pwm, -255, 255);
+// ── I2C helpers ──────────────────────────────────────────────────────────────
 
-    if (pwm > 0)
-    {
-        digitalWrite(AIN1, LOW);
-        digitalWrite(AIN2, HIGH);
-        ledcWrite(CH_A, pwm);
-    }
-    else if (pwm < 0)
-    {
-        digitalWrite(AIN1, HIGH);
-        digitalWrite(AIN2, LOW);
-        ledcWrite(CH_A, -pwm);
-    }
-    else
-    {
-        digitalWrite(AIN1, LOW);
-        digitalWrite(AIN2, LOW);
-        ledcWrite(CH_A, 0);
-    }
+/**
+ * Write an arbitrary byte array to a register on the Hiwonder driver.
+ */
+static void wireWriteBlock(uint8_t reg, const uint8_t *data, uint8_t len)
+{
+    Wire.beginTransmission(HIWONDER_I2C_ADDR);
+    Wire.write(reg);
+    for (uint8_t i = 0; i < len; i++) Wire.write(data[i]);
+    Wire.endTransmission();
 }
 
-void setMotorB(int pwm)
-{
-    if(abs(pwm) < 30) pwm = 0; //deadband
-    pwm = constrain(pwm, -255, 255);
+// ── Motor control ─────────────────────────────────────────────────────────────
 
-    if (pwm > 0)
-    {
-        digitalWrite(BIN1, LOW);
-        digitalWrite(BIN2, HIGH);
-        ledcWrite(CH_B, pwm);
-    }
-    else if (pwm < 0)
-    {
-        digitalWrite(BIN1, HIGH);
-        digitalWrite(BIN2, LOW);
-        ledcWrite(CH_B, -pwm);
-    }
-    else
-    {
-        digitalWrite(BIN1, LOW);
-        digitalWrite(BIN2, LOW);
-        ledcWrite(CH_B, 0);
-    }
+/**
+ * Send speeds to all four channels at once.
+ * Values are signed, range roughly -100 to +100 (the board does its own PWM).
+ * Channel 4 (m4) is unused in kiwi drive; pass 0.
+ *
+ * Sign convention: positive = "forward" as mounted.
+ * If a motor spins the wrong way, negate that channel here, or flip
+ * MOTOR_ENCODER_POLARITY and re-test.
+ */
+static void setMotorSpeeds(int8_t m1, int8_t m2, int8_t m3, int8_t m4 = 0)
+{
+    uint8_t payload[4] = {
+        (uint8_t)m1,
+        (uint8_t)m2,
+        (uint8_t)m3,
+        (uint8_t)m4
+    };
+    wireWriteBlock(MOTOR_FIXED_SPEED_ADDR, payload, 4);
 }
 
-void setMotorC(int pwm)
-{
-    if(abs(pwm) < 30) pwm = 0; //deadband
-    pwm = constrain(pwm, -255, 255);
+// ── Kinematics ────────────────────────────────────────────────────────────────
 
-    if (pwm > 0)
-    {
-        digitalWrite(CIN1, LOW);
-        digitalWrite(CIN2, HIGH);
-        ledcWrite(CH_C, pwm);
-    }
-    else if (pwm < 0)
-    {
-        digitalWrite(CIN1, HIGH);
-        digitalWrite(CIN2, LOW);
-        ledcWrite(CH_C, -pwm);
-    }
-    else
-    {
-        digitalWrite(CIN1, LOW);
-        digitalWrite(CIN2, LOW);
-        ledcWrite(CH_C, 0);
-    }
+/**
+ * Kiwi drive inverse kinematics.
+ * x, y, w are normalised inputs in [-1, 1].
+ * Outputs s1..s3 are in [-1, 1].
+ */
+static void computeSpeeds(float x, float y, float w,
+                           float &s1, float &s2, float &s3)
+{
+    s1 = (-0.33f * x) + ( 0.58f * y) + (0.33f * w);
+    s2 = (-0.33f * x) + (-0.58f * y) + (0.33f * w);
+    s3 = ( 0.67f * x) + ( 0.00f * y) + (0.33f * w);
 }
 
-//kinematics
-void computeSpeeds(float x, float y, float w, float &s1, float &s2, float &s3)
+static void normalize(float &s1, float &s2, float &s3)
 {
-    // Kiwi drive inverse kinematics
-    s1 = (-0.33 * x) + (0.58 * y) + (0.33 * w);
-    s2 = (-0.33 * x) + (-0.58 * y) + (0.33 * w);
-    s3 = ( 0.67 * x) + (0.00 * y) + (0.33 * w);
+    float maxVal = max(fabsf(s1), max(fabsf(s2), fabsf(s3)));
+    if (maxVal > 1.0f) { s1 /= maxVal; s2 /= maxVal; s3 /= maxVal; }
 }
 
-void normalize(float &s1, float &s2, float &s3)
-{
-    float maxVal = max(fabs(s1), max(fabs(s2), fabs(s3)));
+// ── Public drive interface ────────────────────────────────────────────────────
 
-    if (maxVal > 1.0)
-    {
-        s1 /= maxVal;
-        s2 /= maxVal;
-        s3 /= maxVal;
-    }
-}
-
-//driving function
+/**
+ * Drive the robot.
+ * x, y, w : normalised velocity components in [-1, 1].
+ * The Hiwonder driver accepts signed speeds up to ±100 from host.
+ */
 void driveRobot(float x, float y, float w)
 {
     float s1, s2, s3;
-
     computeSpeeds(x, y, w, s1, s2, s3);
     normalize(s1, s2, s3);
 
-    int m1 = (int)(s1 * 255);
-    int m2 = (int)(s2 * 255);
-    int m3 = (int)(s3 * 255);
+    // Scale to the driver's [-100, 100] speed range
+    int8_t m1 = (int8_t)(s1 * 100.0f);
+    int8_t m2 = (int8_t)(s2 * 100.0f);
+    int8_t m3 = (int8_t)(s3 * 100.0f);
 
-    setMotorA(m1);
-    setMotorB(m2);
-    setMotorC(m3);
+    setMotorSpeeds(m1, m2, m3, 0);
 }
 
 void eStopRobot()
 {
-    setMotorA(0);
-    setMotorB(0);
-    setMotorC(0);
+    setMotorSpeeds(0, 0, 0, 0);
 }
 
-//setup
+// ── Setup ─────────────────────────────────────────────────────────────────────
 void setup()
 {
     Serial.begin(115200);
 
-    // Motor pins
-    pinMode(AIN1, OUTPUT); pinMode(AIN2, OUTPUT);
-    pinMode(BIN1, OUTPUT); pinMode(BIN2, OUTPUT);
-    pinMode(CIN1, OUTPUT); pinMode(CIN2, OUTPUT);
+    // I2C init
+    Wire.begin(I2C_SDA_PIN, I2C_SCL_PIN);
+    Wire.setClock(100000);   // 100 kHz — conservative; bump to 400000 if needed
+    delay(100);              // let the driver board boot
 
-    // PWM setup
-    ledcSetup(CH_A, PWM_FREQ, PWM_RES);
-    ledcAttachPin(PWMA, CH_A);
+    // Tell the driver what motor type is connected
+    uint8_t motorType = MOTOR_TYPE;
+    wireWriteBlock(MOTOR_TYPE_ADDR, &motorType, 1);
+    delay(10);
 
-    ledcSetup(CH_B, PWM_FREQ, PWM_RES);
-    ledcAttachPin(PWMB, CH_B);
+    uint8_t encPolarity = MOTOR_ENCODER_POLARITY;
+    wireWriteBlock(MOTOR_ENCODER_POLARITY_ADDR, &encPolarity, 1);
+    delay(10);
 
-    ledcSetup(CH_C, PWM_FREQ, PWM_RES);
-    ledcAttachPin(PWMC, CH_C);
-
-    // Encoder pins
+    // Encoder pins — still direct GPIO
     pinMode(ENC_A1, INPUT_PULLUP); pinMode(ENC_B1, INPUT_PULLUP);
     pinMode(ENC_A2, INPUT_PULLUP); pinMode(ENC_B2, INPUT_PULLUP);
     pinMode(ENC_A3, INPUT_PULLUP); pinMode(ENC_B3, INPUT_PULLUP);
@@ -202,12 +197,14 @@ void setup()
     attachInterrupt(digitalPinToInterrupt(ENC_A2), handleEnc2, CHANGE);
     attachInterrupt(digitalPinToInterrupt(ENC_A3), handleEnc3, CHANGE);
 
-    Serial.println("Kiwi Drive Robot Ready");
+    Serial.println("Kiwi Drive (Hiwonder I2C) Ready");
 }
 
+// ── Loop ──────────────────────────────────────────────────────────────────────
 void loop()
 {
-    Serial.printf("Enc1: %ld | Enc2: %ld | Enc3: %ld\n", encoder1, encoder2, encoder3);
+    Serial.printf("Enc1: %ld | Enc2: %ld | Enc3: %ld\n",
+                  encoder1, encoder2, encoder3);
 
     // Forward
     driveRobot(0, 1, 0);
