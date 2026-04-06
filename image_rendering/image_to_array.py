@@ -2,7 +2,7 @@ import cv2
 import numpy as np
 
 # --------- EDIT THESE ---------
-image_path = "input_image.png"    # input image (any size)
+image_path = r"C:\Users\migue\OneDrive\Desktop\turtle\SWRM_Leds\image_rendering\input_image.png"    # input image (any size)
 output_cpp = "frame1.cpp"         # output C++ file (contains 64x64 RGB array)
 array_name = "frame1"             # C array name
 

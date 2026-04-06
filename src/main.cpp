@@ -1,108 +1,92 @@
 #include <Arduino.h>
+#include <ESP32-HUB75-MatrixPanel-I2S-DMA.h>
+
+#include "common.h"
+#include "showCase.h"
+
+// LED Panel pins
+#define R1_PIN 25
+#define G1_PIN 26
+#define B1_PIN 27
+#define R2_PIN 14
+#define G2_PIN 12
+#define B2_PIN 13
+#define A_PIN 23
+#define B_PIN 19
+#define C_PIN 5
+#define D_PIN 18
+#define E_PIN 17
+#define LAT_PIN 4
+#define OE_PIN 15
+#define CLK_PIN 16
+
+#define PANEL_RES_X 64
+#define PANEL_RES_Y 64
+#define PANEL_CHAIN 1
 
 
 
-const int PWMA = 25;   // PWM
-const int AIN1 = 17;   // MA1
-const int AIN2 = 21;   // MA2
+// LED display object
+MatrixPanel_I2S_DMA *dma_display = nullptr;
 
+// Extern frame data from frame1.cpp
+extern "C" const uint64_t frame1[];
 
-const int ENC_A1 = 35;  // AC1
-const int ENC_A2 = 34;  // AC2
-
-
-const int PWMB = 26; //PWM
-const int BIN1 = 22; //MB1
-const int BIN2 = 23; //MB2
-
-const int ENC_B1 = 39; //BC1
-const int ENC_B2 = 36; //BC2
-//
-volatile long encoderCount = 0;
-
-// PWM
-const int PWM_CHANNEL = 0;
-const int PWM_FREQ = 20000;
-const int PWM_RES = 8;
-
-// Based on my understanding, When ENC_A and ENC_B are equal when it is going forward, and unequal when reverse
-//This program does not take into account Encoder values to stop yet
-//TODO: Add functionality that checks the encoderCount variable to know when the robot has reached its destination and stop the motor
-void IRAM_ATTR handleEncoder()
-{
-    // Robust quadrature decode
-    if (digitalRead(ENC_B1) == digitalRead(ENC_B2))
-        encoderCount++;
-    else
-        encoderCount--;
-}
-
-// This is used to set speed and direction of the motor.
-void setMotor(int pwm)
-{
-    if (pwm > 0)
-    {
-        digitalWrite(BIN1, LOW);
-        digitalWrite(BIN2, HIGH);
-        //LedcWrite sets the speed of the motor depennding on the value of pwm, which can be between 0 and 255 
-        ledcWrite(PWM_CHANNEL, pwm);
-    }
-    else if (pwm < 0)
-    {
-        digitalWrite(BIN1, HIGH);
-        digitalWrite(BIN2, LOW);
-    
-        ledcWrite(PWM_CHANNEL, -pwm);
-    }
-    else
-    {
-        digitalWrite(BIN1, LOW);
-        digitalWrite(BIN2, LOW);
-        ledcWrite(PWM_CHANNEL, 0);
-    }
-}
+// Test frame: simple red square
+const uint64_t testFrame[4096] = {0xFF0000}; // All red, but actually need to fill all
 
 void setup()
 {
     Serial.begin(115200);
     delay(1000);
 
-    // ----- Motor setup -----
-    pinMode(BIN1, OUTPUT);
-    pinMode(BIN2, OUTPUT);
+    // ----- LED Panel setup -----
+    HUB75_I2S_CFG::i2s_pins _pins = {R1_PIN, G1_PIN, B1_PIN, R2_PIN, G2_PIN, B2_PIN, A_PIN, B_PIN, C_PIN, D_PIN, E_PIN, LAT_PIN, OE_PIN, CLK_PIN};
+    HUB75_I2S_CFG mxconfig(PANEL_RES_X, PANEL_RES_Y, PANEL_CHAIN, _pins);
+    mxconfig.i2sspeed = HUB75_I2S_CFG::HZ_10M;
+    mxconfig.mx_height = 64;
+    mxconfig.mx_width = 64;
+    mxconfig.driver = HUB75_I2S_CFG::FM6124;
+    mxconfig.clkphase = false;
+    dma_display = new MatrixPanel_I2S_DMA(mxconfig);
+    dma_display->begin();
+    dma_display->setBrightness8(255);  // Max brightness
+    dma_display->clearScreen();
 
-    ledcSetup(PWM_CHANNEL, PWM_FREQ, PWM_RES);
-    ledcAttachPin(PWMB, PWM_CHANNEL);
-
-    setMotor(0);
-
-    // ----- Encoder setup -----
-    pinMode(ENC_B1, INPUT);
-    pinMode(ENC_B2, INPUT);
-
-    attachInterrupt(digitalPinToInterrupt(ENC_B1), handleEncoder, CHANGE);
-
-    Serial.println("Motor B + Encoder Ready");
+    Serial.println("LED Panel Ready");
 }
 
 void loop()
 {
-    Serial.print("Encoder Count: ");
-    Serial.println(encoderCount);
-
-    // Run forward
-    setMotor(200);
+    // Display a red screen
+    dma_display->fillScreen(dma_display->color565(255, 0, 0));
     delay(1000);
 
-    // Stop
-    setMotor(0);
+    // Display a green screen
+    dma_display->fillScreen(dma_display->color565(0, 255, 0));
     delay(1000);
 
-    // Run reverse
-    setMotor(-200);
+    // Display a blue screen
+    dma_display->fillScreen(dma_display->color565(0, 0, 255));
     delay(1000);
 
-    // Stop
-    setMotor(0);
+    // Clear screen
+    dma_display->clearScreen();
+    delay(1000);
+
+    // Test: draw a white rectangle at 0,0
+    dma_display->fillRect(0, 0, 20, 20, dma_display->color565(255, 255, 255));
+    delay(2000);
+
+    // Clear screen
+    dma_display->clearScreen();
+    delay(1000);
+
+    // Display the frame from frame1.cpp
+    drawBitMap(0, 0, 64, 64, frame1);
+    delay(10000);  // Show frame for 10 seconds
+
+    // Clear screen again
+    dma_display->clearScreen();
     delay(1000);
 }

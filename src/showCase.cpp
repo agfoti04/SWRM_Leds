@@ -201,7 +201,7 @@ uint16_t color565(uint32_t rgb) {
     ((rgb & 0xFF) >> 3);
 };
 
-void drawBitMap(int startx, int starty, int width, int height, uint64_t *bitmap){
+void drawBitMap(int startx, int starty, int width, int height, const uint64_t *bitmap){
    int counter = 0;
   for (int yy = 0; yy < height; yy++) {
     for (int xx = 0; xx < width; xx++) {
@@ -211,7 +211,7 @@ void drawBitMap(int startx, int starty, int width, int height, uint64_t *bitmap)
   }
 }
 
-void drawFlippedBitMap(int startx, int starty, int width, int height, uint64_t *bitmap){
+void drawFlippedBitMap(int startx, int starty, int width, int height, const uint64_t *bitmap){
   int counter = 0;
   for (int yy = 0; yy < height; yy++) {
     for (int xx = 0; xx < width; xx++) {
