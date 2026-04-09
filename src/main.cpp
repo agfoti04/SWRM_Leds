@@ -137,10 +137,16 @@ static void computeSpeeds(float x, float y, float w,
     s3 = ( 0.67f * x) + ( 0.00f * y) + (0.33f * w);
 }
 
+// FIX - not actual normalization
 static void normalize(float &s1, float &s2, float &s3)
 {
     float maxVal = max(fabsf(s1), max(fabsf(s2), fabsf(s3)));
-    if (maxVal > 1.0f) { s1 /= maxVal; s2 /= maxVal; s3 /= maxVal; }
+    if (maxVal > 1.0f) {
+        s1 /= maxVal;
+        s2 /= maxVal;
+        s3 /= maxVal;
+    }
+    // (no need to check for ==0, as division by 0 only if all zeros, which can't exceed 1.0f)
 }
 
 // ── Public drive interface ────────────────────────────────────────────────────
