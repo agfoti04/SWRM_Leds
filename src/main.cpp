@@ -58,14 +58,14 @@
 // ── Encoder GPIO ──────────────────────────────────────────────────────────────
 // These still connect directly to ESP32 GPIO — the Hiwonder board passes encoder
 // signals through its VCC/GND/A/B header per channel.
-const int ENC_A1 = 35;
-const int ENC_B1 = 34;
+const int ENC_A1 = 25;
+const int ENC_B1 = 26;
 
-const int ENC_A2 = 32;
-const int ENC_B2 = 33;
+const int ENC_A2 = 27;
+const int ENC_B2 = 14;
 
-const int ENC_A3 = 36;
-const int ENC_B3 = 39;
+const int ENC_A3 = 16;
+const int ENC_B3 = 17;
 
 volatile long encoder1 = 0;
 volatile long encoder2 = 0;
@@ -73,18 +73,27 @@ volatile long encoder3 = 0;
 
 // ── Encoder ISRs ─────────────────────────────────────────────────────────────
 void IRAM_ATTR handleEnc1() {
-    if (digitalRead(ENC_A1) == digitalRead(ENC_B1)) encoder1++;
-    else encoder1--;
+    uint32_t s = REG_READ(GPIO_IN_REG);          // single atomic snapshot
+    bool a = (s >> ENC_A1) & 1u;
+    bool b = (s >> ENC_B1) & 1u;
+    if (a == b) encoder1++;
+    else        encoder1--;
 }
 
 void IRAM_ATTR handleEnc2() {
-    if (digitalRead(ENC_A2) == digitalRead(ENC_B2)) encoder2++;
-    else encoder2--;
+    uint32_t s = REG_READ(GPIO_IN_REG);
+    bool a = (s >> ENC_A2) & 1u;
+    bool b = (s >> ENC_B2) & 1u;
+    if (a == b) encoder2++;
+    else        encoder2--;
 }
 
 void IRAM_ATTR handleEnc3() {
-    if (digitalRead(ENC_A3) == digitalRead(ENC_B3)) encoder3++;
-    else encoder3--;
+    uint32_t s = REG_READ(GPIO_IN_REG);
+    bool a = (s >> ENC_A3) & 1u;
+    bool b = (s >> ENC_B3) & 1u;
+    if (a == b) encoder3++;
+    else        encoder3--;
 }
 
 // ── I2C helpers ──────────────────────────────────────────────────────────────
@@ -129,6 +138,7 @@ static void setMotorSpeeds(int8_t m1, int8_t m2, int8_t m3, int8_t m4 = 0)
  * x, y, w are normalised inputs in [-1, 1].
  * Outputs s1..s3 are in [-1, 1].
  */
+
 static void computeSpeeds(float x, float y, float w,
                            float &s1, float &s2, float &s3)
 {
@@ -137,10 +147,16 @@ static void computeSpeeds(float x, float y, float w,
     s3 = ( 0.67f * x) + ( 0.00f * y) + (0.33f * w);
 }
 
+// FIX - not actual normalization
 static void normalize(float &s1, float &s2, float &s3)
 {
     float maxVal = max(fabsf(s1), max(fabsf(s2), fabsf(s3)));
-    if (maxVal > 1.0f) { s1 /= maxVal; s2 /= maxVal; s3 /= maxVal; }
+    if (maxVal > 1.0f) {
+        s1 /= maxVal;
+        s2 /= maxVal;
+        s3 /= maxVal;
+    }
+    // (no need to check for ==0, as division by 0 only if all zeros, which can't exceed 1.0f)
 }
 
 // ── Public drive interface ────────────────────────────────────────────────────
@@ -150,6 +166,7 @@ static void normalize(float &s1, float &s2, float &s3)
  * x, y, w : normalised velocity components in [-1, 1].
  * The Hiwonder driver accepts signed speeds up to ±100 from host.
  */
+//Y value of 1 is forward, -1 is backward. X value of 1 is right, -1 is left. W value of 1 is clockwise rotation, -1 is counterclockwise.
 void driveRobot(float x, float y, float w)
 {
     float s1, s2, s3;
@@ -203,32 +220,19 @@ void setup()
 // ── Loop ──────────────────────────────────────────────────────────────────────
 void loop()
 {
-    Serial.printf("Enc1: %ld | Enc2: %ld | Enc3: %ld\n",
-                  encoder1, encoder2, encoder3);
+    noInterrupts();
+    long e1 = encoder1, e2 = encoder2, e3 = encoder3;
+    interrupts();
 
-    // Forward
-    driveRobot(0, 1, 0);
-    delay(2000);
+                  
+      // Forward
+    driveRobot(0, 0.3, 0);
+    delay(3000);
 
     // Backward
-    driveRobot(0, -1, 0);
-    delay(2000);
+    driveRobot(0, -0.3, 0);
+    delay(3000);
 
-    // Turn Left
-    driveRobot(0, 0, 1);
-    delay(2000);
-
-    // Forward
-    driveRobot(0, 1, 0);
-    delay(2000);
-
-    // Turn Right
-    driveRobot(0, 0, -1);
-    delay(2000);
-
-    // Forward
-    driveRobot(0, 1, 0);
-    delay(2000);
 
     // Stop
     eStopRobot();

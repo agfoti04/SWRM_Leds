@@ -47,6 +47,55 @@ void draw_spiral(){
   dma_display->drawRect(32,32,3,3,MAROON);
 }
 
+void animateSquarePathBall() {
+    static int pos = 0;   // position along the path
+    const int speed = 1;  // pixels per frame
+
+    dma_display->fillScreen(0); // black background
+
+    int x, y;
+
+    // Define square path boundaries
+    int minX = 8;
+    int maxX = 56;
+    int minY = 8;
+    int maxY = 56;
+
+    int sideLength = maxX - minX;
+
+    // Total perimeter = 4 * sideLength
+    int perimeter = 4 * sideLength;
+
+    int p = pos % perimeter;
+
+    // Top edge (left → right)
+    if (p < sideLength) {
+        x = minX + p;
+        y = minY;
+    }
+    // Right edge (top → bottom)
+    else if (p < 2 * sideLength) {
+        x = maxX;
+        y = minY + (p - sideLength);
+    }
+    // Bottom edge (right → left)
+    else if (p < 3 * sideLength) {
+        x = maxX - (p - 2 * sideLength);
+        y = maxY;
+    }
+    // Left edge (bottom → top)
+    else {
+        x = minX;
+        y = maxY - (p - 3 * sideLength);
+    }
+
+    // Draw filled white circle
+    dma_display->fillCircle(x, y, 3, dma_display->color565(255, 255, 255));
+
+    pos += speed;
+
+    delay(30);
+}
 //Works
 void animateSpinningSquare(bool clockwise, int off) {
     static float angle = 0;
