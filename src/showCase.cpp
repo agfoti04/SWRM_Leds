@@ -90,7 +90,7 @@ void animateSquarePathBall() {
     }
 
     // Draw filled white circle
-    dma_display->fillCircle(x, y, 3, dma_display->color565(255, 255, 255));
+    dma_display->fillCircle(x, y, 5, dma_display->color565(255, 255, 255));
 
     pos += speed;
 
