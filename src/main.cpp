@@ -10,6 +10,7 @@
 #define MOTOR_ENCODER_POLARITY_ADDR 21   // 0x15
 #define MOTOR_FIXED_SPEED_ADDR      51   // 0x33  – 4 signed bytes, one per channel
 
+
 // Encoder register addresses (Hiwonder I2C driver)
 #define ENCODER1_ADDR               60   // 0x3C  – 4 bytes, signed int32, little-endian
 #define ENCODER2_ADDR               64   // 0x40
@@ -22,7 +23,7 @@
 
 // Adafruit 4638 is an N20 motor
 #define MOTOR_TYPE                  MOTOR_TYPE_N20
-#define MOTOR_ENCODER_POLARITY      0    // 0 = default, 1 = reversed
+#define MOTOR_ENCODER_POLARITY      1    // 0 = default, 1 = reversed
 
 // Encoder resolution for Adafruit 4638 (N20 6V 1:50)
 // 14 raw counts/rev (pre-gear) × 50 gear ratio = 700 counts per output shaft revolution
@@ -122,8 +123,8 @@ static void setMotorSpeeds(int8_t m1, int8_t m2, int8_t m3, int8_t m4 = 0)
 static void computeSpeeds(float x, float y, float w,
                            float &s1, float &s2, float &s3)
 {
-    s1 = (-0.33f * x) + ( 0.58f * y) + (0.33f * w);
-    s2 = (-0.33f * x) + (-0.58f * y) + (0.33f * w);
+    s1 = (0.33f * x) + ( 0.58f * y) + (-0.33f * w);
+    s2 = (0.33f * x) + (-0.58f * y) + (-0.33f * w);
     s3 = ( 0.67f * x) + ( 0.00f * y) + (0.33f * w);
 }
 
@@ -142,7 +143,7 @@ static void normalize(float &s1, float &s2, float &s3)
 /**
  * Drive the robot.
  * x, y, w : normalised velocity components in [-1, 1].
- * Y value of 1 is forward, -1 is backward.
+ * Y value of 1 is backward, -1 is forward.
  * X value of 1 is right, -1 is left.
  * W value of 1 is clockwise rotation, -1 is counterclockwise.
  */
@@ -198,13 +199,27 @@ void loop()
     int32_t e2 = readEncoder(ENCODER2_ADDR);
     int32_t e3 = readEncoder(ENCODER3_ADDR);
 
-    Serial.printf("Enc1: %ld | Enc2: %ld | Enc3: %ld\n", e1, e2, e3);
-
-    // Forward
-    driveRobot(0.5, 0, 0);
-    delay(3000);
+     Serial.printf("Enc1: %ld | Enc2: %ld | Enc3: %ld\n", e1, e2, e3);
 
     
+      driveRobot(0, 1, 0);
+      delay(3000);
+       // driveRobot(0, 0, 0);
+      //delay(3000);
+
+
+    // Forward
+    //  driveRobot(0, -0.5, 0);
+    //  delay(3000);
+    //Right
+    // driveRobot(0.05, 0, 0);
+    // delay(3000);
+    //Backward
+    // driveRobot(0, 0.5, 0);
+    // delay(3000);
+    //Left
+    // driveRobot(-0.05, 0, 0);
+    // delay(3000);
 
     // Stop
     eStopRobot();
