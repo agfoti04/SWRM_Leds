@@ -28,7 +28,7 @@
 
 #define PANEL_RES_X 64
 #define PANEL_RES_Y 64
-#define PANEL_CHAIN 1
+#define PANEL_CHAIN 2
 
 int c =0;
 u_int32_t timer =0;
@@ -74,7 +74,7 @@ uint16_t MAROON = dma_display->color565(128, 0 ,0);
   dma_display->begin();
   //0-255
     //RGB values for certain color we want
-  dma_display->setBrightness8(25); 
+  dma_display->setBrightness8(15); 
   dma_display->clearScreen();
   dma_display->fillScreen(dma_display->color565(255, 0, 0));
 }
@@ -406,8 +406,25 @@ uint64_t static frame1[] = {
 
 };
 void loop() {
-  dma_display->fillScreen(dma_display->color565(0, 255, 0));
-  delay(100);
+  if(c < 64 && !flipped){
+   drawBitMap(25+c,0,64,64,frame1);
+   delay(250);
+   c++;
+   drawBitMap(25+c,0,64,64, frame2);
+   delay(250);
+   c++;}
+   else{
+    flipped = true;
+    drawFlippedBitMap(c,0,64,64,frame2);
+    delay(250);
+    c--;
+    drawFlippedBitMap(c,0,64,64,frame1);
+    delay(250);
+    c--;
+    if(c==20){
+      flipped = false; 
+    }
+   }
 }
 
 //   //dma_display->clearScreen();
